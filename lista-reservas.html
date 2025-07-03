@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reservas Realizadas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>Reservas Realizadas</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Quarto</th>
+        <th>Tipo</th>
+        <th>Preço (R$)</th>
+        <th>Hóspede</th>
+        <th>Telefone</th>
+        <th>Check-in</th>
+        <th>Check-out</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaReservas">
+      <!-- Dados virão aqui -->
+    </tbody>
+  </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    async function carregarReservas() {
+      const { data: quartos, error } = await supabaseClient
+        .from('quarto')
+        .select(`
+          id,
+          numero,
+          tipo,
+          preco_diaria,
+          id_hospede,
+          hospede: id_hospede (
+            nome,
+            telefone,
+            data_checkin,
+            data_checkout
+          )
+        `)
+        .not('id_hospede', 'is', null);
+
+      if (error) {
+        alert('Erro ao buscar reservas: ' + error.message);
+        return;
+      }
+
+      const tabela = document.getElementById('tabelaReservas');
+      tabela.innerHTML = '';
+
+      quartos.forEach(q => {
+        const linha = `
+          <tr>
+            <td>${q.numero}</td>
+            <td>${q.tipo}</td>
+            <td>${q.preco_diaria}</td>
+            <td>${q.hospede?.nome || ''}</td>
+            <td>${q.hospede?.telefone || ''}</td>
+            <td>${q.hospede?.data_checkin || ''}</td>
+            <td>${q.hospede?.data_checkout || ''}</td>
+          </tr>
+        `;
+        tabela.innerHTML += linha;
+      });
+    }
+
+    carregarReservas();
+  </script>
+</body>
+</html>

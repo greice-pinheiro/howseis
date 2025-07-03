@@ -1,0 +1,165 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reserva de Quartos</title>
+  <style>
+    body {
+      background-image: url('hotel.jpg'); 
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+
+    .quartos {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 50px;
+    }
+
+    .quarto {
+      border-radius: 15px;
+      overflow: hidden;
+      text-align: center;
+      cursor: pointer;
+      background-color: rgba(255,255,255,0.9);
+      width: 300px;
+    }
+
+    .quarto img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .formulario {
+      margin: 50px auto;
+      padding: 20px;
+      width: 300px;
+      background-color: rgba(255,255,255,0.9);
+      border-radius: 15px;
+      display: none;
+    }
+
+    .formulario input {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+    }
+
+    .formulario button {
+      width: 100%;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="quartos">
+    <div class="quarto" onclick="selecionarQuarto(1)">
+      <img src="room1.1.jpg" alt="Quarto 1" />
+      <p>QUARTO 1<br>DIÁRIA R$ 350,00</p>
+    </div>
+    <div class="quarto" onclick="selecionarQuarto(2)">
+      <img src="room 1.3.jpg" alt="Quarto 2" />
+      <p>QUARTO 2<br>DIÁRIA R$ 400,00</p>
+    </div>
+  </div>
+
+  <div class="formulario" id="formulario">
+    <h2 id="tituloQuarto"></h2>
+    <form id="formReserva">
+      <input type="text" id="nome" placeholder="Nome" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="text" id="telefone" placeholder="Telefone" required />
+      <input type="date" id="checkin" required />
+      <input type="date" id="checkout" required />
+      <button type="submit">Confirmar Reserva</button>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const { createClient } = supabase;
+
+    const SUPABASE_URL = 'https://bqikwdtndanhsedypzlk.supabase.co'; // Substitua pelo seu
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxaWt3ZHRuZGFuaHNlZHlwemxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwMDI5MzAsImV4cCI6MjA2MjU3ODkzMH0.U3uD274qOaxlMCzjz7MNGOxNh0LNS17dAopCO7nO7rU';
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let quartoSelecionadoId = null;
+
+    function selecionarQuarto(id) {
+      quartoSelecionadoId = id;
+      document.getElementById('formulario').style.display = 'block';
+      document.getElementById('tituloQuarto').innerText = 'Reservando Quarto ' + id;
+    }
+
+    document.getElementById('formReserva').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const nome = document.getElementById('nome').value;
+      const email = document.getElementById('email').value;
+      const telefone = document.getElementById('telefone').value;
+      const data_checkin = document.getElementById('checkin').value;
+      const data_checkout = document.getElementById('checkout').value;
+
+      const { data: quartos, error } = await supabaseClient
+        .from('quarto')
+        .select(`id, id_hospede, hospede: id_hospede (data_checkin, data_checkout)`)
+        .eq('id', quartoSelecionadoId)
+        .not('id_hospede', 'is', null);
+
+      if (error) {
+        alert("Erro ao verificar disponibilidade: " + error.message);
+        return;
+      }
+
+      if (quartos.length > 0 && quartos[0].hospede) {
+        const existenteCheckin = new Date(quartos[0].hospede.data_checkin);
+        const existenteCheckout = new Date(quartos[0].hospede.data_checkout);
+        const novoCheckin = new Date(data_checkin);
+        const novoCheckout = new Date(data_checkout);
+
+        const conflito =
+          (novoCheckin <= existenteCheckout && novoCheckout >= existenteCheckin);
+
+        if (conflito) {
+          alert("Data indisponível para este quarto. Por favor, escolha outra data ou outro quarto.");
+          return;
+        }
+      }
+
+      const { data: hospede, error: erroHospede } = await supabaseClient
+        .from('hospede')
+        .insert([{ nome, telefone, data_checkin, data_checkout }])
+        .select()
+        .single();
+
+      if (erroHospede) {
+        alert("Erro ao cadastrar hóspede: " + erroHospede.message);
+        return;
+      }
+
+      const { error: erroQuarto } = await supabaseClient
+        .from('quarto')
+        .update({ id_hospede: hospede.id })
+        .eq('id', quartoSelecionadoId);
+
+      if (erroQuarto) {
+        alert("Erro ao atualizar quarto: " + erroQuarto.message);
+      } else {
+        alert("Reserva realizada com sucesso!");
+        document.getElementById('formReserva').reset();
+        document.getElementById('formulario').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

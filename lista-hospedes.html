@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lista de Hóspedes</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #eee; }
+  </style>
+</head>
+<body>
+  <h1>Hóspedes Cadastrados</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>Check-in</th>
+        <th>Check-out</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaHospedes"></tbody>
+  </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const { createClient } = supabase;
+    const supabaseClient = createClient('https://bqikwdtndanhsedypzlk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxaWt3ZHRuZGFuaHNlZHlwemxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwMDI5MzAsImV4cCI6MjA2MjU3ODkzMH0.U3uD274qOaxlMCzjz7MNGOxNh0LNS17dAopCO7nO7rU');
+
+    async function carregarHospedes() {
+      const { data, error } = await supabaseClient
+        .from('hospede')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (error) {
+        alert("Erro ao carregar hóspedes: " + error.message);
+        return;
+      }
+
+      const tabela = document.getElementById('tabelaHospedes');
+      tabela.innerHTML = '';
+
+      data.forEach(h => {
+        const linha = `
+          <tr>
+            <td>${h.id}</td>
+            <td>${h.nome}</td>
+            <td>${h.telefone}</td>
+            <td>${h.data_checkin}</td>
+            <td>${h.data_checkout}</td>
+          </tr>`;
+        tabela.innerHTML += linha;
+      });
+    }
+
+    carregarHospedes();
+  </script>
+</body>
+</html>
